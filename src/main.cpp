@@ -1,5 +1,4 @@
 #include <QCoreApplication>
-#include <QObject>
 #include <QDebug>
 #include <opencv2/opencv.hpp>
 #include <ueye.h>
@@ -8,9 +7,6 @@
 using namespace std;
 using namespace cv;
 
-bool client_flag = false;
-const unsigned int port = 8080;
-
 const int NUMBER_BYTE = 3;
 double enable = 1;
 double disable = 0;
@@ -18,7 +14,7 @@ CAMINFO camera_info;
 HIDS camera_id;
 SENSORINFO sensor_info;
 INT color_mode = IS_CM_BGR8_PACKED;
-INT bits_per_pixel = 24;
+const INT bits_per_pixel = 24;
 INT memID[NUMBER_BYTE];
 INT width;
 INT height;
@@ -31,7 +27,6 @@ UINT nRange[3];
 IS_DEVICE_INFO deviceInfo;
 unsigned int zoom = 1;
 const int unsigned zoom_number = 5;
-bool send_flag = false;
 double frame_rate;
 double min_frame_rate;
 double max_frame_rate;
