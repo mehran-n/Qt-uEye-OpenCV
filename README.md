@@ -1,5 +1,5 @@
 # Qt-uEye
-Display the images of the IDS cameras by uEye and OpenCV APIs, the code is developed by Qt and Qt Creator
+C++ project to display the images of the IDS cameras by uEye and OpenCV APIs, the code is developed by Qt and Qt Creator
 
 ## Install
 Install Qt (4.15.2)
