@@ -15,3 +15,4 @@ Compile the project with qmake (Qt and Qt Creator).
 
 ## Required Modification
 In `.pro` file, include the path of the OpenCV (Line 6)
+    `INCLUDEPATH += {OpenCV path}`
