@@ -9,7 +9,6 @@ using namespace cv;
 
 const int NUMBER_BYTE = 3;
 double enable = 1;
-double disable = 0;
 CAMINFO camera_info;
 HIDS camera_id;
 SENSORINFO sensor_info;
@@ -22,21 +21,18 @@ CHAR* pMem[NUMBER_BYTE];
 VOID* mem_data = NULL;
 INT mat_mode = CV_8UC3;
 UINT nGamma = 160;
-UINT nDeviceId = 1;
 UINT nRange[3];
-IS_DEVICE_INFO deviceInfo;
-unsigned int zoom = 1;
-const int unsigned zoom_number = 5;
 double frame_rate;
 double min_frame_rate;
 double max_frame_rate;
+INT nNumCam;
+Mat frame;
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
     // At least one camera must be available ///////////////////////////////////////////////////////
-    INT nNumCam;
     if (is_GetNumberOfCameras( &nNumCam ) == IS_SUCCESS) {
         if (nNumCam >= 1) {
             // Create new list with suitable size
@@ -45,8 +41,7 @@ int main(int argc, char *argv[])
             pucl->dwCount = nNumCam;
             //Retrieve camera info
             if (is_GetCameraList(pucl) == IS_SUCCESS) {
-                int iCamera;
-                for (iCamera = 0; iCamera < (int)pucl->dwCount; iCamera++) {
+                for (int iCamera = 0; iCamera < (int)pucl->dwCount; iCamera++) {
                     //Test output of camera info on the screen
                     qDebug() << "Camera:" << iCamera;
                     camera_id = pucl->uci[iCamera].dwCameraID;
@@ -54,7 +49,7 @@ int main(int argc, char *argv[])
                     qDebug() << "\tDevice ID:" << pucl->uci[iCamera].dwDeviceID;
                     qDebug() << "\tSensor ID:" << pucl->uci[iCamera].dwSensorID;
                     qDebug() << "\tIn use:" << pucl->uci[iCamera].dwInUse;
-                    qDebug() << "\tSerial No.:" << QString(pucl->uci[iCamera].SerNo);
+                    qDebug() << "\tSerial No.:" << pucl->uci[iCamera].SerNo;
                     qDebug() << "\tModel:" << pucl->uci[iCamera].Model;
                     qDebug() << "\tStatus:" << pucl->uci[iCamera].dwStatus;
                     qDebug() << "\tFull Model Name:" << pucl->uci[iCamera].FullModelName;
@@ -119,21 +114,9 @@ int main(int argc, char *argv[])
         if (is_SetColorMode(camera_id, color_mode) != IS_SUCCESS)
             qDebug() << "Error: Set Color Mode!";
 
-        // Set Auto Gain ///////////////////////////////////////////////////////////////////////////
-        if (is_SetAutoParameter(camera_id, IS_SET_ENABLE_AUTO_GAIN, &enable, 0) != IS_SUCCESS)
-            qDebug() << "Error: Set Enable Auto Gain";
-
         // Set Auto Shutter ////////////////////////////////////////////////////////////////////////
         if (is_SetAutoParameter(camera_id, IS_SET_ENABLE_AUTO_SHUTTER, &enable, 0)  != IS_SUCCESS)
             qDebug() << "Error: Set Enable Auto Shutter";
-
-        // set Auto White Balance //////////////////////////////////////////////////////////////////
-        if (is_SetAutoParameter(camera_id, IS_SET_ENABLE_AUTO_WHITEBALANCE, &enable, 0) != IS_SUCCESS)
-            qDebug() << "Error: Set Enable Auto White Balance";
-
-        // Set Auto Brightness /////////////////////////////////////////////////////////////////////
-        if (is_SetAutoParameter(camera_id, IS_SET_AUTO_BRIGHTNESS_ONCE, &enable, 0) != IS_SUCCESS)
-            qDebug() << "Error: Set Auto Brightness Once";
 
         // Set Gamma ///////////////////////////////////////////////////////////////////////////////
         if (is_Gamma(camera_id, IS_GAMMA_CMD_SET, (void*) &nGamma, sizeof(nGamma)) != IS_SUCCESS)
@@ -202,25 +185,23 @@ int main(int argc, char *argv[])
     qDebug() << "Press 'a' to start/stop frame capturing";
     qDebug() << "Press 'p' to adjust pixel clock";
     qDebug() << "Press 'f' to adjust frame rate";
-
-    Mat frame;
     ////////////////////////////////////////////////////////////////////////////////////////////////
     while(true)
     {
+        // Set Auto Gain ///////////////////////////////////////////////////////////////////////////
+        if (is_SetAutoParameter(camera_id, IS_SET_ENABLE_AUTO_GAIN, &enable, 0) != IS_SUCCESS)
+            qDebug() << "Error: Set Enable Auto Gain";
+
+        // set Auto White Balance //////////////////////////////////////////////////////////////////
+        if (is_SetAutoParameter(camera_id, IS_SET_ENABLE_AUTO_WHITEBALANCE, &enable, 0) != IS_SUCCESS)
+            qDebug() << "Error: Set Enable Auto White Balance";
+
+        // Set Auto Brightness /////////////////////////////////////////////////////////////////////
+        if (is_SetAutoParameter(camera_id, IS_SET_AUTO_BRIGHTNESS_ONCE, &enable, 0) != IS_SUCCESS)
+            qDebug() << "Error: Set Auto Brightness Once";
+
         is_GetImageMem(camera_id, &mem_data);
         Mat frame(height, width, mat_mode, mem_data);
-
-        int width_frame = width/1;
-        int height_frame = height/1;
-
-        resize(frame, frame, Size(width_frame, height_frame), 0, 0);
-
-        Rect crop(((width_frame/2)/zoom_number)*(zoom-1), ((height_frame/2)/zoom_number)*(zoom-1),
-                  width_frame/((double)zoom_number/((double)zoom_number-zoom+1)),
-                  height_frame/((double)zoom_number/((double)zoom_number-zoom+1)));
-
-        frame = frame(crop);
-        resize(frame, frame, Size(width_frame, height_frame));
 
         char key = waitKey(5);
         if (key >= 0)
@@ -251,9 +232,9 @@ int main(int argc, char *argv[])
                     if (is_PixelClock(camera_id, IS_PIXELCLOCK_CMD_SET, (void*)&_pixel_clock,
                                       sizeof(_pixel_clock)) != IS_SUCCESS)
                         qDebug() << "Error: Pixel Clock!";
-
                 }
-                else qDebug() << "Error: The Value is out of range!";
+                else
+                    qDebug() << "Error: The Value is out of range!";
             }
             ////////////////////////////////////////////////////////////////////////////////////////
             if (key == 'f')
@@ -269,16 +250,12 @@ int main(int argc, char *argv[])
             {
                 destroyAllWindows();
                 if (is_StopLiveVideo(camera_id, IS_FORCE_VIDEO_STOP) != IS_SUCCESS)
-                {
                     qDebug() << "ERROR: Camera failed to stop live video!";
-                }
                 break;
             }
         }
 
-        namedWindow("IDS Camera", WINDOW_NORMAL);
-        resizeWindow("IDS Camera", 1500, 1008);
-        imshow("IDS Camera, Server", frame);
+        imshow("IDS Camera", frame);
     }
 
     return a.exec();
